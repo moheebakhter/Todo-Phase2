@@ -1,8 +1,121 @@
-# Claude Code Rules
+﻿# Claude Code Rules
 
-This file is generated during init for the selected agent.
+You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architect to build products.
 
-You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
+---
+
+## Project: Phase II - Todo Full-Stack Web Application
+
+**Objective:** Transform the Phase I console app into a modern multi-user web application with persistent storage.
+
+**Development Approach:** Agentic Dev Stack workflow: Write spec → Generate plan → Break into tasks → Implement via Claude Code. No manual coding allowed.
+
+### Technology Stack
+
+| Layer          | Technology                    |
+|----------------|-------------------------------|
+| Frontend       | Next.js 16+ (App Router)      |
+| Backend        | Python FastAPI                |
+| ORM            | SQLModel                      |
+| Database       | Neon Serverless PostgreSQL    |
+| Authentication | Better Auth (JWT tokens)      |
+| Spec-Driven    | Claude Code + Spec-Kit Plus   |
+
+### Agent Assignments
+
+Use these specialized agents for their respective domains:
+
+| Agent             | Responsibility                                                                 |
+|-------------------|--------------------------------------------------------------------------------|
+| **Auth Agent**    | Authentication flows, Better Auth configuration, JWT token handling, session management |
+| **Frontend Agent**| Next.js App Router pages, React components, client-side state, API integration |
+| **DB Agent**      | SQLModel schemas, Neon PostgreSQL, migrations, data isolation, query design   |
+| **Backend Agent** | FastAPI routes, middleware, dependency injection, request/response handling   |
+
+### Authentication Flow (Better Auth + JWT)
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Frontend  │     │ Better Auth │     │   Backend   │
+│  (Next.js)  │     │   (Auth)    │     │  (FastAPI)  │
+└──────┬──────┘     └──────┬──────┘     └──────┬──────┘
+       │                   │                   │
+       │ 1. User Login     │                   │
+       │──────────────────>│                   │
+       │                   │                   │
+       │ 2. Session + JWT  │                   │
+       │<──────────────────│                   │
+       │                   │                   │
+       │ 3. API Request (Authorization: Bearer <token>)    │
+       │───────────────────────────────────────────────────>│
+       │                   │                   │
+       │                   │ 4. Verify JWT     │
+       │                   │   Extract user_id │
+       │                   │                   │
+       │ 5. User-scoped data (filtered by user_id)         │
+       │<───────────────────────────────────────────────────│
+       │                   │                   │
+```
+
+**Authentication Rules:**
+1. User logs in on Frontend → Better Auth creates session and issues JWT token
+2. Frontend makes API call → Includes JWT in `Authorization: Bearer <token>` header
+3. Backend receives request → Extracts token, verifies signature using shared secret
+4. Backend identifies user → Decodes token to get user ID, email, etc.
+5. Backend filters data → Returns only tasks belonging to that authenticated user
+
+### Core Requirements
+
+- Implement all 5 Basic Level features as a web application
+- Create RESTful API endpoints (FastAPI)
+- Build responsive frontend interface (Next.js App Router)
+- Store data in Neon Serverless PostgreSQL database
+- User signup/signin using Better Auth with JWT tokens
+- Strict user data isolation (users can only access their own tasks)
+
+---
+
+## Development Workflow
+
+### Agentic Dev Stack Process
+
+```
+1. /sp.specify  →  Write feature specification
+2. /sp.plan     →  Generate architecture plan (invoke relevant agents for review)
+3. /sp.tasks    →  Break into testable tasks
+4. /sp.implement →  Execute tasks via Claude Code (agents validate each domain)
+5. /sp.phr      →  Record prompt history
+```
+
+### Agent Invocation Guidelines
+
+**During Planning (`/sp.plan`):**
+- Invoke **DB Agent** when designing data models or schemas
+- Invoke **Auth Agent** when designing authentication flows
+- Invoke **Backend Agent** when designing API endpoints
+- Invoke **Frontend Agent** when designing UI components
+
+**During Implementation (`/sp.implement`):**
+- **Auth Agent**: After any changes to auth middleware, token handling, or login/signup flows
+- **Frontend Agent**: After creating/modifying pages, components, or client-side logic
+- **DB Agent**: After creating/modifying SQLModel schemas or database queries
+- **Backend Agent**: After creating/modifying FastAPI routes or middleware
+
+**During Review:**
+- Invoke all relevant agents before marking tasks as complete
+- Agents provide governance checks, not implementation
+- Fix any issues identified before proceeding
+
+### Cross-Agent Coordination
+
+For features spanning multiple domains (e.g., "User creates a task"):
+
+1. **DB Agent** reviews: Task model with `user_id` FK
+2. **Backend Agent** reviews: POST `/api/tasks` endpoint with JWT auth
+3. **Auth Agent** reviews: JWT verification and user extraction
+4. **Frontend Agent** reviews: Task creation form and API integration
+
+---
 
 ## Task context
 
@@ -196,15 +309,127 @@ If ALL true, suggest:
 
 Wait for consent; never auto-create ADRs. Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
 
-## Basic Project Structure
+## Project Structure
 
-- `.specify/memory/constitution.md` — Project principles
-- `specs/<feature>/spec.md` — Feature requirements
-- `specs/<feature>/plan.md` — Architecture decisions
-- `specs/<feature>/tasks.md` — Testable tasks with cases
-- `history/prompts/` — Prompt History Records
-- `history/adr/` — Architecture Decision Records
-- `.specify/` — SpecKit Plus templates and scripts
+```
+Todo-Phase2/
+├── frontend/                    # Next.js 16+ App Router
+│   ├── app/                     # App Router pages
+│   │   ├── (auth)/              # Auth route group (login, signup)
+│   │   ├── (dashboard)/         # Protected routes
+│   │   └── api/                 # API routes (if needed for BFF)
+│   ├── components/              # React components
+│   ├── lib/                     # Utilities, auth config
+│   └── package.json
+│
+├── backend/                     # Python FastAPI
+│   ├── src/
+│   │   ├── api/                 # API routes
+│   │   │   └── routes/          # Endpoint handlers
+│   │   ├── core/                # Config, security, deps
+│   │   ├── models/              # SQLModel schemas
+│   │   ├── services/            # Business logic
+│   │   └── main.py              # FastAPI app entry
+│   ├── alembic/                 # Database migrations
+│   ├── tests/                   # Backend tests
+│   └── requirements.txt
+│
+├── specs/                       # Spec-Driven artifacts
+│   └── <feature>/
+│       ├── spec.md              # Feature requirements
+│       ├── plan.md              # Architecture decisions
+│       └── tasks.md             # Testable tasks
+│
+├── history/                     # Development history
+│   ├── prompts/                 # PHR records
+│   └── adr/                     # Architecture Decision Records
+│
+├── agents/                      # Agent governance rules
+│   ├── jwt-auth-agent.md        # Auth Agent rules
+│   ├── frontend-governance-agent.md  # Frontend Agent rules
+│   ├── database-agent.md        # DB Agent rules
+│   └── backend-governance-agent.md   # Backend Agent rules
+│
+├── .specify/                    # SpecKit Plus templates
+└── CLAUDE.md                    # This file
+```
+
+## Agent Governance Rules
+
+### Auth Agent (jwt-auth-governance)
+**Invoke for:** Authentication flows, JWT handling, Better Auth configuration, token verification, session management.
+
+**Responsibilities:**
+- Review JWT token creation and validation
+- Validate Better Auth configuration
+- Ensure secure token storage (httpOnly cookies preferred)
+- Verify shared secret management between Frontend and Backend
+- Audit authorization header handling
+
+**Security Requirements:**
+- JWT tokens MUST be verified on every protected endpoint
+- Shared secret MUST be stored in environment variables, never hardcoded
+- Token expiration MUST be enforced
+- Refresh token rotation SHOULD be implemented
+
+### Frontend Agent (frontend-governance)
+**Invoke for:** Next.js App Router pages, React components, client-side state, API integration, UI/UX patterns.
+
+**Responsibilities:**
+- Enforce App Router conventions and best practices
+- Validate component architecture (Server vs Client Components)
+- Review data fetching patterns
+- Ensure proper error boundaries and loading states
+- Validate authentication state management
+
+**Technical Standards:**
+- Use Server Components by default, Client Components only when necessary
+- Implement proper loading.tsx and error.tsx for each route
+- Use Next.js built-in fetch with appropriate caching
+- Follow accessibility (a11y) best practices
+
+### DB Agent (database-schema-reviewer)
+**Invoke for:** SQLModel schemas, Neon PostgreSQL queries, migrations, data isolation, index strategy.
+
+**Responsibilities:**
+- Validate SQLModel schema definitions
+- Ensure `user_id` FK exists on all user-scoped tables
+- Review ON DELETE cascade behavior
+- Verify appropriate indexes on query columns
+- Audit for cross-user data access vulnerabilities
+
+**Data Isolation Rules (CRITICAL):**
+- ALL user-scoped tables MUST have `user_id` foreign key
+- ALL queries on user data MUST filter by authenticated user_id
+- Cross-user data access is FORBIDDEN
+- User deletion MUST cascade or soft-delete owned records
+
+### Backend Agent (fastapi-backend-reviewer)
+**Invoke for:** FastAPI routes, middleware, dependency injection, request validation, error handling.
+
+**Responsibilities:**
+- Validate FastAPI route definitions and HTTP methods
+- Review Pydantic model definitions for request/response
+- Ensure proper dependency injection patterns
+- Verify JWT verification middleware on protected routes
+- Audit error handling and status codes
+
+**API Standards:**
+- Use dependency injection for current user context
+- Return appropriate HTTP status codes (401, 403, 404)
+- Validate all inputs with Pydantic models
+- Document endpoints with OpenAPI annotations
+
+## Spec-Driven Development Artifacts
+
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| Specifications | `specs/<feature>/spec.md` | Feature requirements and acceptance criteria |
+| Plans | `specs/<feature>/plan.md` | Architecture decisions and design |
+| Tasks | `specs/<feature>/tasks.md` | Testable implementation tasks |
+| PHRs | `history/prompts/` | Prompt History Records |
+| ADRs | `history/adr/` | Architecture Decision Records |
+| Constitution | `.specify/memory/constitution.md` | Project principles |
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
