@@ -1,35 +1,24 @@
 "use client";
 
-/**
- * Landing page that redirects based on authentication status.
- * - Authenticated users → /dashboard
- * - Unauthenticated users → /login
- */
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth";
+import { useAuth } from "@/components/auth-provider";
 
-export default function HomePage() {
+export default function Home() {
   const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isPending) {
-      if (session) {
-        router.replace("/dashboard");
-      } else {
-        router.replace("/login");
-      }
+    if (!isLoading) {
+      router.replace(user ? "/dashboard" : "/login");
     }
-  }, [session, isPending, router]);
+  }, [user, isLoading, router]);
 
-  // Show loading state while checking auth
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--foreground)] mx-auto" />
-        <p className="mt-4 text-[var(--muted)]">Loading...</p>
+        <div className="w-12 h-12 border-2 border-[#1cd98e]/30 border-t-[#1cd98e] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-400 text-sm">Loading TaskFlow...</p>
       </div>
     </div>
   );

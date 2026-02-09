@@ -1,0 +1,57 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# ENV files (SECRET)
+# =========================
+.env
+.env.local
+.env.production
+.env.development
+
+# =========================
+# PYTHON / BACKEND (Render)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.log
+
+# SQLite (agar use ho rahi ho)
+*.sqlite3
+
+# =========================
+# NODE / FRONTEND (Vercel)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# =========================
+# TEST / CACHE
+# =========================
+.coverage
+.pytest_cache/
+.cache/
+
+# =========================
+# MISC
+# =========================
+*.zip
+*.tar

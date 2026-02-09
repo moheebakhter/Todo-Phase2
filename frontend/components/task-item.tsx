@@ -1,9 +1,5 @@
 "use client";
 
-/**
- * Single task item component with completion toggle.
- */
-
 import { useState } from "react";
 import Link from "next/link";
 import type { Task } from "@/types";
@@ -13,24 +9,22 @@ interface TaskItemProps {
   onToggle: (id: string) => Promise<void>;
 }
 
-/**
- * Displays a single task with checkbox for completion.
- */
 export function TaskItem({ task, onToggle }: TaskItemProps) {
   const [isToggling, setIsToggling] = useState(false);
   const [optimisticCompleted, setOptimisticCompleted] = useState(task.is_completed);
 
-  const handleToggle = async () => {
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (isToggling) return;
 
-    // Optimistic update
     setOptimisticCompleted(!optimisticCompleted);
     setIsToggling(true);
 
     try {
       await onToggle(task.id);
     } catch {
-      // Revert on error
       setOptimisticCompleted(task.is_completed);
     } finally {
       setIsToggling(false);
@@ -38,61 +32,54 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
   };
 
   return (
-    <div
-      className={`
-        flex items-start gap-3 p-4 rounded-lg border border-[var(--border)]
-        bg-[var(--secondary)] transition-opacity
-        ${optimisticCompleted ? "opacity-60" : ""}
-      `}
-    >
-      {/* Checkbox */}
-      <button
-        type="button"
-        onClick={handleToggle}
-        disabled={isToggling}
-        className={`
-          mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center
-          transition-colors cursor-pointer
-          ${
+    <div className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 transition-all hover:border-slate-700 ${optimisticCompleted ? "opacity-60" : ""}`}>
+      <div className="flex items-center gap-4">
+        {/* Checkbox */}
+        <button
+          onClick={handleToggle}
+          disabled={isToggling}
+          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
             optimisticCompleted
-              ? "bg-[var(--primary)] border-[var(--primary)]"
-              : "border-[var(--muted)] hover:border-[var(--foreground)]"
-          }
-        `}
-        aria-label={optimisticCompleted ? "Mark as incomplete" : "Mark as complete"}
-      >
-        {optimisticCompleted && (
-          <svg
-            className="h-3 w-3 text-[var(--primary-foreground)]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={3}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </button>
-
-      {/* Task content */}
-      <Link href={`/dashboard/tasks/${task.id}`} className="flex-1 min-w-0">
-        <h3
-          className={`
-            font-medium text-[var(--foreground)] truncate
-            ${optimisticCompleted ? "line-through text-[var(--muted)]" : ""}
-          `}
+              ? "bg-emerald-600 border-emerald-600"
+              : "border-slate-600 hover:border-indigo-500"
+          }`}
         >
-          {task.title}
-        </h3>
-        {task.description && (
-          <p className="mt-1 text-sm text-[var(--muted)] line-clamp-2">
-            {task.description}
+          {optimisticCompleted && (
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </button>
+
+        {/* Content */}
+        <Link href={`/dashboard/tasks/${task.id}`} className="flex-1 min-w-0">
+          <p className={`font-medium ${optimisticCompleted ? "text-slate-500 line-through" : "text-white"}`}>
+            {task.title}
           </p>
-        )}
-        <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-          Created {new Date(task.created_at).toLocaleDateString()}
-        </p>
-      </Link>
+          {task.description && (
+            <p className="text-sm text-slate-500 mt-1 truncate">{task.description}</p>
+          )}
+        </Link>
+
+        {/* Status Badge */}
+        <span className={`px-3 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
+          optimisticCompleted
+            ? "bg-emerald-500/20 text-emerald-400"
+            : "bg-amber-500/20 text-amber-400"
+        }`}>
+          {optimisticCompleted ? "Done" : "Pending"}
+        </span>
+
+        {/* View Link */}
+        <Link
+          href={`/dashboard/tasks/${task.id}`}
+          className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      </div>
     </div>
   );
 }

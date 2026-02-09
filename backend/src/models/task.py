@@ -1,9 +1,11 @@
 """Task model and schemas for the Todo application."""
-
+from sqlalchemy import String, Boolean, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
+import uuid
 from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
-
+from src.models import Base
 from sqlmodel import SQLModel, Field
 
 

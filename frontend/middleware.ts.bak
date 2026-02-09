@@ -1,0 +1,41 @@
+/**
+ * Next.js middleware - simplified for client-side JWT auth.
+ *
+ * NOTE: Since authentication uses localStorage (client-side only),
+ * middleware cannot verify auth status. Auth redirects are handled
+ * by client components:
+ * - Dashboard layout redirects to /login if not authenticated
+ * - Auth pages can redirect to /dashboard if already authenticated
+ *
+ * This middleware is kept minimal for potential future server-side needs.
+ */
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+/**
+ * Middleware function - passes through all requests.
+ * Auth protection is handled client-side.
+ */
+export function middleware(request: NextRequest) {
+  // For client-side JWT auth, we cannot verify tokens in middleware
+  // All auth redirects are handled by React components
+  return NextResponse.next();
+}
+
+/**
+ * Configure which routes the middleware runs on.
+ */
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - api routes (API routes handle their own auth)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_next).*)",
+  ],
+};

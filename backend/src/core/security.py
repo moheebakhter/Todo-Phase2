@@ -1,6 +1,10 @@
-"""JWT verification for authenticating requests from Better Auth."""
+"""JWT and password security utilities."""
 
+import hashlib
+import os
 import re
+from datetime import datetime, timedelta
+
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
 
@@ -21,18 +25,48 @@ class TokenPayload:
         self.email = email
 
 
+# ---------------------------------------------------------------------------
+# Password hashing (stdlib only — no bcrypt/passlib dependency)
+# ---------------------------------------------------------------------------
+
+def hash_password(password: str) -> str:
+    """Hash a password with a random salt using PBKDF2-SHA256."""
+    salt = os.urandom(32)
+    key = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
+    return salt.hex() + ":" + key.hex()
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Verify a password against a stored PBKDF2 hash."""
+    try:
+        salt_hex, key_hex = stored_hash.split(":")
+        salt = bytes.fromhex(salt_hex)
+        key = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
+        return key.hex() == key_hex
+    except (ValueError, TypeError):
+        return False
+
+
+# ---------------------------------------------------------------------------
+# JWT creation
+# ---------------------------------------------------------------------------
+
+def create_token(user_id: str, email: str | None = None) -> str:
+    """Create a signed JWT token for the given user."""
+    settings = get_settings()
+    expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
+    payload: dict = {"sub": user_id, "exp": expire}
+    if email:
+        payload["email"] = email
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+# ---------------------------------------------------------------------------
+# JWT verification
+# ---------------------------------------------------------------------------
+
 def _validate_user_id(user_id: str | None) -> str:
-    """Validate user_id format from JWT payload.
-
-    Args:
-        user_id: User ID extracted from JWT 'sub' claim
-
-    Returns:
-        Validated user_id string
-
-    Raises:
-        ValueError: If user_id is invalid
-    """
+    """Validate user_id format from JWT payload."""
     if user_id is None:
         raise ValueError("Missing user_id")
 
@@ -52,22 +86,7 @@ def _validate_user_id(user_id: str | None) -> str:
 
 
 def verify_token(token: str) -> TokenPayload:
-    """Verify and decode a JWT token from Better Auth.
-
-    The jose library automatically validates:
-    - Token signature using JWT_SECRET
-    - Token expiration (exp claim)
-    - Token not-before time (nbf claim) if present
-
-    Args:
-        token: The JWT token string to verify
-
-    Returns:
-        TokenPayload with user_id and optional email
-
-    Raises:
-        HTTPException: 401 if token is invalid, expired, or malformed
-    """
+    """Verify and decode a JWT token."""
     settings = get_settings()
 
     credentials_exception = HTTPException(
@@ -77,27 +96,18 @@ def verify_token(token: str) -> TokenPayload:
     )
 
     try:
-        # jose.jwt.decode automatically validates:
-        # - Signature using the provided secret
-        # - Expiration time (exp claim) - rejects expired tokens
-        # - Not-before time (nbf claim) if present
         payload = jwt.decode(
             token,
             settings.JWT_SECRET,
             algorithms=[settings.JWT_ALGORITHM],
         )
 
-        # Extract and validate user ID from 'sub' claim
         user_id = _validate_user_id(payload.get("sub"))
-
-        # Email is optional
         email: str | None = payload.get("email")
 
         return TokenPayload(user_id=user_id, email=email)
 
     except ValueError:
-        # Invalid user_id format
         raise credentials_exception
     except JWTError:
-        # Invalid token signature, expired, or malformed
         raise credentials_exception

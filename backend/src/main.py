@@ -10,7 +10,13 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from src.core.config import get_settings
-from src.api.routes import health, tasks
+from src.api.routes import health, tasks, auth
+
+from sqlmodel import SQLModel
+from src.models.task import Task  # noqa: F401 — ensure model registers in SQLModel.metadata
+from src.models.user import User  # noqa: F401 — ensure users table is created
+
+from src.api.deps import get_engine
 
 # Configure logging
 logging.basicConfig(
@@ -27,90 +33,68 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS middleware with explicit allowed methods and headers
+# Configure CORS
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    # Explicit methods instead of wildcard for security
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    # Explicit headers instead of wildcard for security
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
+
+@app.on_event("startup")
+async def create_tables():
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 # Include routers
 app.include_router(health.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
-
+app.include_router(auth.router)
 
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all incoming requests with timing information and add request ID header."""
     request_id = str(uuid4())[:8]
     start_time = time.time()
 
-    # Store request_id in request state for use in exception handlers
     request.state.request_id = request_id
-
-    # Log request
-    logger.info(
-        f"[{request_id}] {request.method} {request.url.path} - Started"
-    )
+    logger.info(f"[{request_id}] {request.method} {request.url.path} - Started")
 
     response = await call_next(request)
 
-    # Add request ID to response headers for client-side correlation
     response.headers["X-Request-ID"] = request_id
-
-    # Log response with duration
     duration = time.time() - start_time
     logger.info(
         f"[{request_id}] {request.method} {request.url.path} - "
         f"Completed {response.status_code} in {duration:.3f}s"
     )
-
     return response
-
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors with consistent format."""
     request_id = getattr(request.state, "request_id", "unknown")
-    errors = []
-    for error in exc.errors():
-        errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"],
-        })
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": errors, "request_id": request_id},
+        content={"detail": exc.errors(), "request_id": request_id},
         headers={"X-Request-ID": request_id},
     )
 
-
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected exceptions with consistent format."""
     request_id = getattr(request.state, "request_id", "unknown")
     logger.exception(f"[{request_id}] Unhandled exception: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "detail": "Internal server error",
-            "request_id": request_id,
-        },
+        content={"detail": "Internal server error", "request_id": request_id},
         headers={"X-Request-ID": request_id},
     )
 
-
 @app.get("/")
 async def root():
-    """Root endpoint with API information."""
     return {
         "message": "Todo Full-Stack API",
         "docs": "/docs",
