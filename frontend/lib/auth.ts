@@ -30,7 +30,7 @@ export interface AuthResponse {
  * Sign in with email and password.
  */
 export async function signIn(email: string, password: string): Promise<Session> {
-  const response = await fetch(`${API_URL}/api/api/auth/login`, {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -62,7 +62,7 @@ export async function signUp(
   password: string,
   name?: string
 ): Promise<Session> {
-  const response = await fetch(`${API_URL}/api/api/auth/register`, {
+  const response = await fetch(`${API_URL}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, name }),
