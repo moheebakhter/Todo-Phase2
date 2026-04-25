@@ -60,7 +60,7 @@ async def create_tables():
 # Include routers
 app.include_router(health.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
-app.include_router(auth.router)
+app.include_router(auth.router, prefix="/api")
 
 # Request logging middleware
 @app.middleware("http")
