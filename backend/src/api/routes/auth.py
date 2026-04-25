@@ -8,7 +8,7 @@ from src.api.deps import DbSession
 from src.core.security import hash_password, verify_password, create_token
 from src.models.user import User
 
-router = APIRouter(prefix="/api/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"]) 
 
 
 class SignupRequest(BaseModel):
